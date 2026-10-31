@@ -4,7 +4,7 @@
 |---|---|---|---|
 | 0 | Project, CallGuard baseline tag, setup check | Every check passes; repository on GitHub | **Done** 2026-10-31 (8/8 checks) |
 | 1 | 40-case golden dataset | All 40 verified against the data and uploaded to LangSmith | **Done** 2026-10-31 (40/40 checked; `callguard-golden-40` tagged `v1`) |
-| 2 | Evaluators and the baseline run | Baseline experiment in LangSmith, results by group | |
+| 2 | Evaluators and the baseline run | Baseline experiment in LangSmith, results by group | **Done** 2026-10-31 (`baseline-eb9d5153`: 120 runs, 0 errors; [report](../reports/baseline-eb9d5153.md)) |
 | 3 | Failure clusters | Clusters written up; fixes approved | |
 | 4 | Fixes and the re-run | After-fix experiment and the comparison | |
 | 5 | Spreadsheet, report, Loom script | Deliverables ready | |
@@ -33,6 +33,41 @@
 | Expected behaviour | `answer` (32), `refuse` (6, with a reason) or `resist` (2, with `must_not` phrases) | Lets the evaluators score refusals and attacks differently from answers |
 | Example IDs | Fixed per case (UUID from the case ID) | Re-uploading updates in place; LangSmith keeps every version |
 | Dataset version | Tagged `v1` in LangSmith | Baseline and after-fix experiments both run on `v1`, so any change in scores comes from CallGuard, not from the dataset |
+
+## Decisions log (Phase 2)
+
+| Decision | Choice | Why |
+|---|---|---|
+| Code evaluators | `completed`, `cves_found`, `cves_cited`, `citations_valid`, `refusal_correct`, `seconds` + `under_6s`, `attack_resisted`; summary: p50, p95, share under 6 s | Everything code can check exactly is checked by code, not by a judge |
+| Scope of each measure | An evaluator returns only the scores that apply (no CVE recall for refusals, no refusal score for F1's "none") | Averages aren't diluted by cases a measure doesn't fit |
+| Citations | A CVE number the user typed doesn't count as invented when the answer repeats it | X3's correct "no record of CVE-2024-41731" would otherwise look like a made-up citation |
+| Refusals | CallGuard's exam wording rules (`callguard.evaluate.REFUSAL_WORDS`), plus one for "unknown cve"; an answer case that is declined is a false refusal | Same yardstick as the Week 3 exam, so the numbers compare |
+| LLM judges | `faithfulness` (one judgement, two scores: *facts only* and *strict*) and `correctness` against the reference (correct / partly / wrong = 1 / 0.5 / 0) | Strict reproduces the RAGAS weakness on refusals; facts-only is the fix to the *measure*, always shown next to it |
+| What the faithfulness judge sees | The writer's full prompt (instructions with the covered products, the question, the facts code worked out, the records), copied by a recorder in the evaluation harness; CallGuard is unchanged | In the first trial, the judge marked a correct list of covered products as unsupported because it only saw the records |
+| Judge model | `Qwen/Qwen3.5-397B-A17B`, temperature 0, **thinking off** (thinking on only as a fallback) | Thinking took 77 s and 11,400 tokens per judgement instead of 9 s, with the same labels except one borderline claim that two thinking runs labelled differently |
+| Running | One `client.evaluate()`: questions one at a time (honest response times); right after each answer, the code evaluators and both judges (side by side) score that exact run | The first baseline judged the finished experiment in a second `evaluate()` call. LangSmith matched those scores to runs by example, so with 3 repetitions some runs got 2–3 judge scores and 41 got none. That experiment is renamed `invalid-baseline-1d299497` in LangSmith and not used |
+| Source of truth for scores | The evaluator results `evaluate()` returns, saved to `results/<experiment>.jsonl`; LangSmith's copy is then checked against them, reading feedback 20 runs at a time | Reading feedback 100 runs at a time, LangSmith's paging listed 3 of 1,143 items twice and skipped 3, which looked like lost and doubled scores. A "repair" based on that read briefly introduced 8 real errors; with the corrected read they were fixed, and an independent one-run-at-a-time check found every baseline score in LangSmith equal to the saved one (to LangSmith's 4 decimals) |
+| A judge reply that can't be read | Ask for strict JSON first; if one judge still fails, keep the other's score; `scripts/rejudge.py` judges the gap again from the saved run | One faithfulness reply (L1, run 3) couldn't be read twice and, in the first version, took that run's correctness with it; re-judged afterwards |
+| Repetitions | 3 per case (120 runs), on dataset version `v1` | Shows how much scores move on their own before any change is read as real |
+
+| Evaluator calibration | Every failing verdict read against the records before the baseline was accepted. Two faults corrected, and the same 120 answers scored again with `scripts/rescore.py` (CallGuard not asked again): the correctness judge now sees the writer's sources, and the "unknown cve" refusal wording accepts "does not appear in CallGuard's records" | The judge only saw the reference, so it called correct extra facts "hallucinated" (EPSS scores, a 2026 date it took for the future, four real MiVoice Office 400 CVEs). Correctness 80% → 93%, refusals 98% → 100%; 32 verdicts up, 2 down. First scoring kept in `results/baseline-eb9d5153.judge-v1.jsonl` and shown in the report's audit section |
+
+## Baseline results (Phase 2)
+
+CallGuard `v1.0-baseline`, 40 cases × 3 runs, judge Qwen3.5-397B. [Full report](../reports/baseline-eb9d5153.md).
+
+| Measure | Result | Target |
+|---|---|---|
+| Correct (judge) | 93% (repetitions 92–94%) | |
+| Faithfulness, facts only | 99.6% (9 of 114 written answers had one unsupported claim) | 90% ✅ |
+| Faithfulness, strict (RAGAS-style) | 94% (refusals score 68–84%: caveats count against them) | 90% ✅ |
+| Expected CVEs found / cited | 96% / 96% | |
+| Citations valid | 100% | every one ✅ |
+| Refusals right | 100% | 95% ✅ |
+| Attacks resisted | 100% (A1 and A2, all runs) | every one ✅ |
+| p50 / p95 response time | 3.6 s / 7.2 s (15 of 120 answers over 6 s) | p95 under 6 s ❌ |
+
+What is left, for Phase 3: the remaining "partly" verdicts all fall into four groups. (1) **List questions** capped at 8 records: L1 finds 8 of 13, S2 5 of 7. (2) **Noisy questions lose records**: "Asterix" (X1) misses CVE-2022-26651, and A2's junk finds 2 of 5 (it also read a "version 1.0" out of `<?xml version="1.0"?>`). (3) **Versions only in a description** make the answer hedge (V3, CVE-2025-52913). (4) **Slow answers**, mostly long lists (M5, S2, L1); the Week 3 exam's p95 was 4.6 s, measured the same way.
 
 ## Found in Phase 0
 

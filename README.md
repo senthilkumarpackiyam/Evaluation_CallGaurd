@@ -37,6 +37,21 @@ All 40 cases are listed in [`dataset/README.md`](dataset/README.md). The source 
 | Known failure | 6 | The weaknesses in CallGuard's own failure analysis, plus a "list every…" question with more answers than one search returns |
 | Adversarial | 2 | A prompt injection asking for a false "safe", and 771 characters of malformed input around one real question |
 
+## Run the evaluation
+
+```bash
+uv run scripts/run_experiment.py --name baseline   # 40 cases x 3 runs, scored in LangSmith (about 15 minutes)
+uv run scripts/report.py <experiment> --title "Baseline"   # reports/<experiment>.md from the saved results
+```
+
+Each answer is scored by:
+- **Code evaluators:** expected CVEs found and cited, citations valid, refusals right (both ways), response time, attacks resisted.
+- **Two LLM judges** (Qwen3.5-397B, a different model from CallGuard's own): faithfulness to exactly what the writer was shown, and correctness against the reference answer.
+
+Every run and score is saved to `results/<experiment>.jsonl`.
+
+## Check the dataset
+
 ```bash
 uv run scripts/check_dataset.py    # checks all 40 against CallGuard's data
 uv run scripts/upload_dataset.py   # uploads them to LangSmith as callguard-golden-40 (safe to repeat)
