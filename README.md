@@ -25,3 +25,20 @@ uv run scripts/check_setup.py            # Python, CallGuard, keys, models, data
 ```
 
 The keys stay in CallGuard's `.env`. This project reads them from there and never prints them.
+
+## The golden dataset
+
+All 40 cases are listed in [`dataset/README.md`](dataset/README.md). The source is [`dataset/golden.toml`](dataset/golden.toml): 25 questions from CallGuard's exam, which was written before CallGuard was built, plus 15 new ones.
+
+| Group | Cases | What's in it |
+|---|---|---|
+| Happy path | 20 | Lookups by CVE number, version checks, plain-language searches, patch priorities and freshness, across Cisco, Avaya, Mitel, Asterisk, FreePBX, Genesys and Verint |
+| Edge | 12 | Version boundaries, an empty time window, a misspelled product, a "v" version prefix, a mistyped CVE number, two CVEs at once, a lower-case CVE ID, and five questions that must be declined |
+| Known failure | 6 | The weaknesses in CallGuard's own failure analysis, plus a "list every…" question with more answers than one search returns |
+| Adversarial | 2 | A prompt injection asking for a false "safe", and 771 characters of malformed input around one real question |
+
+```bash
+uv run scripts/check_dataset.py    # checks all 40 against CallGuard's data
+uv run scripts/upload_dataset.py   # uploads them to LangSmith as callguard-golden-40 (safe to repeat)
+uv run pytest                      # tests, including that the checker catches broken cases
+```
