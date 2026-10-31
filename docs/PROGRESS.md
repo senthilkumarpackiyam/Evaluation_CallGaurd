@@ -5,7 +5,7 @@
 | 0 | Project, CallGuard baseline tag, setup check | Every check passes; repository on GitHub | **Done** 2026-10-31 (8/8 checks) |
 | 1 | 40-case golden dataset | All 40 verified against the data and uploaded to LangSmith | **Done** 2026-10-31 (40/40 checked; `callguard-golden-40` tagged `v1`) |
 | 2 | Evaluators and the baseline run | Baseline experiment in LangSmith, results by group | **Done** 2026-10-31 (`baseline-eb9d5153`: 120 runs, 0 errors; [report](../reports/baseline-eb9d5153.md)) |
-| 3 | Failure clusters | Clusters written up; fixes approved | |
+| 3 | Failure clusters | Clusters written up; fixes approved | **Written** 2026-10-31 ([clusters](../reports/failure_clusters.md)); fixes awaiting approval |
 | 4 | Fixes and the re-run | After-fix experiment and the comparison | |
 | 5 | Spreadsheet, report, Loom script | Deliverables ready | |
 
