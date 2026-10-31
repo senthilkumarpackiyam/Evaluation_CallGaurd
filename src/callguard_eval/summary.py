@@ -36,6 +36,7 @@ def averages(rows):
     out["runs"] = len(rows)
     out["cases"] = len({r["case_id"] for r in rows})
     out["errors"] = sum(r["outputs"].get("kind") == "error" for r in rows)
+    out["rewritten"] = sum(r["outputs"].get("rewritten", 0) for r in rows)  # answers the citation guard rewrote
     return out
 
 

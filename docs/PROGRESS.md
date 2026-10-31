@@ -6,7 +6,7 @@
 | 1 | 40-case golden dataset | All 40 verified against the data and uploaded to LangSmith | **Done** 2026-10-31 (40/40 checked; `callguard-golden-40` tagged `v1`) |
 | 2 | Evaluators and the baseline run | Baseline experiment in LangSmith, results by group | **Done** 2026-10-31 (`baseline-eb9d5153`: 120 runs, 0 errors; [report](../reports/baseline-eb9d5153.md)) |
 | 3 | Failure clusters | Clusters written up; fixes approved | **Written** 2026-10-31 ([clusters](../reports/failure_clusters.md)); fixes awaiting approval |
-| 4 | Fixes and the re-run | After-fix experiment and the comparison | **Done** 2026-10-31 (`after-fixes-f943ddf3`, [comparison](../reports/comparison.md), [held-out](../reports/holdout-comparison.md)) |
+| 4 | Fixes and the re-run | After-fix experiment and the comparison | **Done** 2026-10-31: v1.1 (F1–F4) `after-fixes-f943ddf3`, then v1.2 (+F5) `after-guard-404070fe` ([final comparison](../reports/comparison-final.md), [held-out](../reports/holdout-comparison-final.md)) |
 | 5 | Spreadsheet, report, Loom script | Deliverables ready | |
 
 ## Decisions log (Phase 0)
@@ -82,6 +82,7 @@ What is left, for Phase 3: the remaining "partly" verdicts all fall into four gr
 | A changed test | `CVE-2025-52913` at 9.8.2.0 was expected "unknown"; it is now "affected" | That is the behaviour F4 is meant to change |
 | Overfitting check | `dataset/holdout.toml`: 5 cases written after the fixes, one per fixed behaviour on another product (H1 MiVoice Connect list, H2 "MiColab", H3 HTML email, H4 CVE-2025-27827, H5 Unity Connection), uploaded as `callguard-holdout-5`; run on both `v1.0-baseline` and `v1.1` | A fix that only learned its golden case would show no gain here |
 | Comparison | `scripts/compare.py`: a change is "clear" only when the two experiments' repetition ranges don't overlap | The baseline showed correctness moving 92–94% on its own |
+| F5 citation guard (approved after the v1.1 run) | A cited CVE number not in the records, and not typed by the user, gets one rewrite naming the wrong number; if one remains, or the answer was streamed, code appends a warning. `Answer.rewritten` counts it. CallGuard `v1.2`, 4 tests (59) | The only regression F1–F4 caused: one invented CVE number in 120 runs. CallGuard detected it but still showed it. Since it happened once in 120, a re-run can't prove the guard works by its absence alone, so the guard is tested with a scripted writer and the re-run counts how often it fired |
 
 ## Results after the fixes (Phase 4)
 
@@ -115,6 +116,30 @@ Held-out check, 5 fresh cases × 3 on both versions. [Comparison](../reports/hol
 - The fixes generalise: H1 (another product's list), H2 (another misspelling), H3 (an HTML email) and H4 (another description-only record) all answer correctly on v1.1.
 - **Latency on the held-out run is not a fair comparison:** v1.1 ran first, so its first repetition paid for the new questions' search embeddings (retrieve 0.75–5.9 s instead of 0.05 s); the baseline run reused them. One H3 answer also hit a Nebius slowdown (16.8 s to write 281 tokens). The writer itself took 1.4–2.7 s on v1.1 against 1.5–4.0 s on the baseline.
 - **A limitation this exposed:** the golden runs' response times were measured with the question embeddings already cached (the questions had been asked before), so a brand-new question in real use also pays 1–6 s for its embedding. The p95 of 3.6 s is for answering, not for a first-ever question.
+
+## Final results: CallGuard v1.2 (F1–F5)
+
+Golden dataset, 40 cases × 3. [Baseline vs v1.2](../reports/comparison-final.md); [v1.1 vs v1.2](../reports/comparison-guard.md).
+
+| Measure | Baseline (v1.0) | v1.1 (F1–F4) | **v1.2 (F1–F5)** | Baseline → v1.2 |
+|---|---|---|---|---|
+| Correct (judge) | 93% | 98% | **98%** (96–99%) | ✅ clearly better |
+| Expected CVEs found | 96% | 99.1% | **99.1%** | ✅ clearly better |
+| Citations valid | 100% | 99.2% | **100%** | |
+| Refusals right · attacks resisted | 100% · 100% | 100% · 100% | **100% · 100%** | |
+| Faithfulness, facts only | 99.6% | 99.1% | **99.4%** | slightly worse (−0.2 pts) |
+| p50 / p95 | 3.6 s / 7.2 s | 2.0 s / 3.6 s | **2.1 s / 3.8 s** | ✅ clearly better; 98% under 6 s |
+
+- **The citation guard didn't fire** in these 120 runs: no answer cited an invented CVE number this time. A 1-in-120 error can't be shown fixed by its absence in one more run, so the guard's evidence is its 4 tests with a scripted writer; this run shows it costs nothing when it isn't needed (v1.1 vs v1.2 within noise on every measure).
+- **The 3 answers over 6 s were single stalled Nebius calls**, not CallGuard: M3's writer took 16.7 s for 564 tokens (usually about 2 s), and S3's 54-token check call took 14.6 s and 3.7 s (usually about 1 s). A shorter API timeout with one retry would remove these; noted as a next step, not built.
+- **The small price of F1** (no hidden reasoning): faithfulness, facts only, 99.6% → 99.4%, from single loose inferences ("your build is the fixed one", "not applicable" for an Unknown ransomware status) and two one-run "partly" verdicts (V1, M4).
+- **Held-out check on v1.2** ([comparison](../reports/holdout-comparison-final.md)): correct 80% → **100%**, CVEs found 96% → **100%**, p50 2.8 s → 2.0 s, every answer under 6 s.
+
+**LangSmith's monthly trace limit was reached** during the held-out run on v1.2 ("Monthly unique traces usage limit exceeded", free plan). Each experiment stores one trace per run plus one per evaluator call, about 1,200 per 120-run experiment.
+- Every experiment above except the held-out v1.2 run is complete in LangSmith.
+- The held-out v1.2 numbers come from `results/holdout-v1.2-86e64089.jsonl`, the evaluators' own results (complete: 15 runs, all scored, since the judges run on this machine). Its LangSmith experiment is renamed `untraced-holdout-v1.2-86e64089` and holds no runs. An earlier attempt, `incomplete-holdout-v1.2-1395c6d2`, has 14 of its 15 runs in LangSmith (its local file was deleted before the limit was understood).
+- **Until the limit resets, nothing new is traced**, including CallGuard's own website and `ask.py`. Next time: `client.evaluate(..., disable_evaluator_tracing=True)` would cut the traces per experiment from about 1,200 to 120.
+- `scripts/run_experiment.py` now waits for every trace to be uploaded before reading back (`wait_for_all_tracers`) and adds back any score LangSmith is missing.
 
 ## Found in Phase 0
 

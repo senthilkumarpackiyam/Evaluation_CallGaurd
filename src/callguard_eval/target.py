@@ -34,7 +34,9 @@ def writer_prompt(messages):
     (the question, the facts code worked out, and the records)."""
     if not messages:
         return None
-    parts = {m["role"]: m["content"] for m in messages}
+    parts = {}
+    for m in messages:  # the first of each: after a citation-guard rewrite, the last "user" message is the correction
+        parts.setdefault(m["role"], m["content"])
     return f"THE WRITER'S INSTRUCTIONS:\n{parts.get('system', '')}\n\nTHE WRITER'S INPUT:\n{parts.get('user', '')}"
 
 
@@ -61,6 +63,7 @@ def make_target():
                 "check": (state.get("check") or {}).get("why"),
                 "retrieved": a.retrieved or [h.record["id"] for h in state.get("hits", [])],
                 "cited": a.cited, "unsupported": a.unsupported, "seconds": a.seconds, "tokens": a.tokens,
+                "rewritten": getattr(a, "rewritten", 0),  # the citation guard (CallGuard v1.2 and later)
                 "writer_prompt": writer_prompt(recorder.last)}
 
     return callguard

@@ -14,11 +14,12 @@ import argparse
 import sys
 import time
 
+from langchain_core.tracers.langchain import wait_for_all_tracers
 from langsmith import Client
 
 from callguard_eval.dataset import DATASETS
 from callguard_eval.evaluators import CODE_EVALUATORS, JUDGE_MODEL, JUDGES, timing
-from callguard_eval.results import langsmith_differences, rows_from, save
+from callguard_eval.results import langsmith_differences, repair_langsmith, rows_from, save
 from callguard_eval.target import describe, make_target
 
 
@@ -54,6 +55,10 @@ def main():
                     f"{args.repetitions} repetitions; judge {JUDGE_MODEL}")
     experiment = evaluated.experiment_name
     print(f"1. Answered and scored in {time.time() - started:.0f} s: {experiment}", flush=True)
+    # Wait until every trace has been uploaded: in one held-out run the program finished first, and its last run
+    # never reached LangSmith
+    wait_for_all_tracers()
+    client.flush()
 
     project = client.read_project(project_name=experiment)
     rows = rows_from(evaluated, project)
@@ -64,8 +69,16 @@ def main():
     client.flush()
     time.sleep(15)  # LangSmith stores feedback in the background
     differences = langsmith_differences(client, rows)
+    if differences:  # in one held-out run, the last two runs' scores never reached LangSmith; add them from the file
+        time.sleep(30)
+        added, removed = repair_langsmith(client, rows) if langsmith_differences(client, rows) else (0, 0)
+        client.flush()
+        time.sleep(10)
+        print(f"   LangSmith was missing or doubling scores: {added} added from the saved results, {removed} "
+              "copies removed")
+        differences = langsmith_differences(client, rows)
     print("3. LangSmith's scores match the saved ones" if not differences else
-          "3. LangSmith's scores differ from the saved ones (the saved ones are the evaluator's own results): "
+          "3. LangSmith's scores still differ from the saved ones (the saved ones are the evaluator's own results): "
           + ", ".join(f"{n} {what}" for what, n in differences.items()))
     print(f"Open it: {project.url}")
 

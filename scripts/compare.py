@@ -92,7 +92,8 @@ def main():
     out = [f"# {args.title}", "",
            f"Before: [`{args.before}`]({link[args.before]}), {before['cases']} cases, {before['runs']} runs. "
            f"After: [`{args.after}`]({link[args.after]}), {after['cases']} cases, {after['runs']} runs. "
-           "Same dataset version, evaluators and judge; only CallGuard changed.", "",
+           "Same dataset version, evaluators and judge; only CallGuard changed. "
+           f"Answers rewritten by the citation guard: {before['rewritten']} before, {after['rewritten']} after.", "",
            "## Against the targets", "",
            table(["Target", "Before", "After"],
                  [[name, f"{fmt(k, before[k])} {mark(ok(before[k]))}" if before[k] is not None else "–",
