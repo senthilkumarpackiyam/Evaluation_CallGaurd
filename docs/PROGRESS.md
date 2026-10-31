@@ -7,7 +7,7 @@
 | 2 | Evaluators and the baseline run | Baseline experiment in LangSmith, results by group | **Done** 2026-10-31 (`baseline-eb9d5153`: 120 runs, 0 errors; [report](../reports/baseline-eb9d5153.md)) |
 | 3 | Failure clusters | Clusters written up; fixes approved | **Written** 2026-10-31 ([clusters](../reports/failure_clusters.md)); fixes awaiting approval |
 | 4 | Fixes and the re-run | After-fix experiment and the comparison | **Done** 2026-10-31: v1.1 (F1–F4) `after-fixes-f943ddf3`, then v1.2 (+F5) `after-guard-404070fe` ([final comparison](../reports/comparison-final.md), [held-out](../reports/holdout-comparison-final.md)) |
-| 5 | Spreadsheet, report, Loom script | Deliverables ready | |
+| 5 | Spreadsheet, report, Loom script | Deliverables ready | **Done** 2026-10-31 ([report](../reports/evaluation_report.md) and Google Doc, [spreadsheet](../reports/callguard_evaluation.xlsx), [Loom script](loom_script.md), README) |
 
 ## Decisions log (Phase 0)
 
@@ -140,6 +140,17 @@ Golden dataset, 40 cases × 3. [Baseline vs v1.2](../reports/comparison-final.md
 - The held-out v1.2 numbers come from `results/holdout-v1.2-86e64089.jsonl`, the evaluators' own results (complete: 15 runs, all scored, since the judges run on this machine). Its LangSmith experiment is renamed `untraced-holdout-v1.2-86e64089` and holds no runs. An earlier attempt, `incomplete-holdout-v1.2-1395c6d2`, has 14 of its 15 runs in LangSmith (its local file was deleted before the limit was understood).
 - **Until the limit resets, nothing new is traced**, including CallGuard's own website and `ask.py`. Next time: `client.evaluate(..., disable_evaluator_tracing=True)` would cut the traces per experiment from about 1,200 to 120.
 - `scripts/run_experiment.py` now waits for every trace to be uploaded before reading back (`wait_for_all_tracers`) and adds back any score LangSmith is missing.
+
+## Decisions log (Phase 5)
+
+| Decision | Choice | Why |
+|---|---|---|
+| Report | [`reports/evaluation_report.md`](../reports/evaluation_report.md), plus a Google Doc "Evaluating CallGuard with LangSmith" (uploaded as HTML, so headings, lists and tables are native; every heading set to keep with its next paragraph) | Your choice; the same route as the CallGuard write-up |
+| Google Doc wording | No emoji and no typed section numbers (cross-references by section name); the repo copy keeps ✅/❌ for GitHub | Docs design rules: emoji and hand-typed numbering read badly and break when sections move |
+| Spreadsheet | `scripts/build_spreadsheet.py` → Summary, Golden cases, Held-out and All runs (405 runs). Every score on the first three sheets is a formula over All runs; only p50/p95 are typed in (blue, with a note), because CallGuard's nearest-rank percentile differs slightly from Excel's | You can check any number against the run data, and it follows the data if a run is re-scored |
+| Formula check | No LibreOffice on this Mac, so every formula was computed with the `formulas` engine in a temporary environment: 0 errors in 10,935 cells, and the Summary and per-case values match the reports. The file recalculates on opening (`fullCalcOnLoad`) | The skill's recalculation step needs LibreOffice; installing it wasn't worth a large system install |
+| Lookup keys | Per-case formulas match a text key (`<experiment>|<case>`), not the bare case ID | As a criterion, "M1"…"M5" were read as the same number by the formula engine, which mixed M1–M4 with M5 (caught by the check, fixed) |
+| Loom script | [`docs/loom_script.md`](loom_script.md): 5 timed sections with what to show and say, and exact LangSmith links | It shows only experiments that are already stored, because the trace limit stops new ones |
 
 ## Found in Phase 0
 
