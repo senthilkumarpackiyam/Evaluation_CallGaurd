@@ -9,7 +9,7 @@ import argparse
 import json
 
 from callguard_eval import ROOT
-from callguard_eval.dataset import GROUPS, load_cases
+from callguard_eval.dataset import GROUPS, all_cases
 from callguard_eval.results import load
 from callguard_eval.summary import LABELS, MEASURES, averages, by_group, cases, noise
 
@@ -17,7 +17,10 @@ REPORTS = ROOT / "reports"
 
 
 def pct(value):
-    return "–" if value is None else f"{value:.0%}"
+    """A share as a percentage; one decimal between 99% and 100%, so 99.6% doesn't read as 100%."""
+    if value is None:
+        return "–"
+    return f"{value:.1%}" if 0.99 <= value < 1 else f"{value:.0%}"
 
 
 def secs(value):
@@ -99,7 +102,7 @@ def main():
     first = rows[0]
     project_url = first["url"].rsplit("/r/", 1)[0]
     overall, groups, spread, per_case = averages(rows), by_group(rows), noise(rows), cases(rows)
-    questions = {c["id"]: c["question"] for c in load_cases()}
+    questions = {c["id"]: c["question"] for c in all_cases()}
     keys = [k for k, _, _ in MEASURES]
 
     out = [f"# {args.title or args.experiment}", "",

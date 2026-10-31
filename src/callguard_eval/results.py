@@ -9,14 +9,14 @@ import json
 from collections import Counter, defaultdict
 
 from callguard_eval import ROOT
-from callguard_eval.dataset import load_cases
+from callguard_eval.dataset import all_cases
 
 RESULTS_DIR = ROOT / "results"
 
 
 def rows_from(experiment_results, project):
-    cases = {c["id"]: c for c in load_cases()}
-    order = {c["id"]: i for i, c in enumerate(load_cases())}
+    cases = {c["id"]: c for c in all_cases()}
+    order = {c["id"]: i for i, c in enumerate(all_cases())}
     rows, repetition = [], defaultdict(int)
     for item in sorted(experiment_results, key=lambda item: item["run"].start_time):
         run, case = item["run"], cases[item["example"].metadata["case_id"]]

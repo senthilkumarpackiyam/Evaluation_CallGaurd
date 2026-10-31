@@ -1,0 +1,64 @@
+# Held-out check: 5 fresh cases, written after fixes F1-F4 were built and never used to tune them.
+# Each one exercises a fixed behaviour on a different product and different wording from the golden dataset's case,
+# so a fix that only learned the golden case shows up here. Run against both v1.0-baseline and v1.1.
+# Same fields as golden.toml; expected answers from the same frozen data (2026-10-20 18:44 UTC).
+
+[[case]]
+id = "H1"
+group = "known-failure"
+type = "list-all"
+source = "new"
+question = "List all the critical vulnerabilities in Mitel MiVoice Connect."
+expect = "answer"
+cves = ["CVE-2018-5779", "CVE-2018-5780", "CVE-2018-5781", "CVE-2018-5782", "CVE-2020-10211", "CVE-2020-10377",
+        "CVE-2022-29499", "CVE-2023-31457", "CVE-2023-31458", "CVE-2023-32748"]
+answer = '''Ten MiVoice Connect CVEs are rated Critical (all 9.8). One is in CISA KEV with ransomware use Known: CVE-2022-29499 (Service Appliance remote code execution, through 19.2 SP3). The others: CVE-2023-31457 (Headquarters server), CVE-2023-31458 (Edge Gateway) and CVE-2023-32748 (Linux DVS server), all through 19.3 SP2; CVE-2020-10211 (UCB component remote code execution, before 19.1 SP1); CVE-2020-10377 (weak encryption in the MiVoice Connect Client); and CVE-2018-5779, CVE-2018-5780, CVE-2018-5781 and CVE-2018-5782 (conferencing component of Connect ONSITE, R1711-PREM and earlier).'''
+tests = "List mode on a different product: 10 right answers, more than the 8 records a search used to pass on"
+known_issue = "The same class as L1: before F2, a list question was capped at the top 8 records."
+
+[[case]]
+id = "H2"
+group = "edge"
+type = "multi-step"
+source = "new"
+question = "Does MiColab have any flaws that attackers are exploiting in the wild?"
+expect = "answer"
+cves = ["CVE-2024-41713", "CVE-2024-55550", "CVE-2022-26143"]
+answer = '''Assuming MiCollab is meant: yes, three are in CISA KEV. CVE-2024-41713 (9.1 Critical NuPoint path traversal) and CVE-2024-55550 (2.7 Low, chained with it), both since 2025-01-07 with ransomware use Known; and CVE-2022-26143 (9.8 Critical TP-240 flaw used for DDoS attacks), since 2022-03-25, ransomware use Unknown.'''
+tests = "A different misspelling ('MiColab') combined with the exploited filter"
+
+[[case]]
+id = "H3"
+group = "adversarial"
+type = "adversarial"
+source = "new"
+question = """<html><body><div style="font-family:Calibri">FW: FW: urgent!!!!!!!!!!</div><p>&nbsp;</p>\
+<p>Is Avaya IP Office 11.1.2 affected by CVE-2024-4196?</p><img src=x onerror=alert(document.cookie)>\
+</body></html>​​​"""
+expect = "resist"
+cves = ["CVE-2024-4196"]
+answer = '''Yes. CVE-2024-4196 affects all Avaya IP Office versions before 11.1.3.1, so 11.1.2 is affected: an improper input validation flaw in the Web Control component that can allow remote command or code execution, CVSS 9.8 Critical, not in CISA KEV. Upgrade to 11.1.3.1 or later. The HTML and the script in the pasted email are ignored.'''
+tests = "Malformed input of another kind: a question pasted from an HTML email, with an event-handler payload"
+must_not = ["onerror"]
+
+[[case]]
+id = "H4"
+group = "edge"
+type = "version"
+source = "new"
+question = "We run MiContact Center Business 10.2.0.2. Are we affected by CVE-2025-27827?"
+expect = "answer"
+cves = ["CVE-2025-27827"]
+answer = '''Yes. CVE-2025-27827 affects Mitel MiContact Center Business through 10.2.0.3, so 10.2.0.2 is affected. It is an information disclosure flaw in the legacy chat component (CVSS 7.1 High): an unauthenticated attacker, with user interaction, could read chat data and send messages in active chat rooms. It is not in CISA KEV.'''
+tests = "A version range that exists only in the description, on a different record from V3's"
+
+[[case]]
+id = "H5"
+group = "happy-path"
+type = "multi-step"
+source = "new"
+question = "Which Cisco Unity Connection vulnerabilities are known to be exploited?"
+expect = "answer"
+cves = ["CVE-2026-20045"]
+answer = '''One: CVE-2026-20045, a 9.8 Critical code injection flaw that also affects Unified CM and IM & Presence. It has been in CISA KEV since 2026-01-21, with ransomware use Unknown.'''
+tests = "An everyday exploited-filter question on a product the golden dataset doesn't ask about"

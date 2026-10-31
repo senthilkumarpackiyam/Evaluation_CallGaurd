@@ -6,10 +6,11 @@ against CallGuard's product list, and the two freshness answers against the data
 it rewrites dataset/README.md, the table of all 40 cases.
 """
 
+import argparse
 import sys
 from collections import Counter
 
-from callguard_eval.dataset import DATASET_FILE, GROUPS, load_cases, load_records, problems
+from callguard_eval.dataset import DATASET_FILE, DATASETS, GROUPS, load_cases, load_records, problems
 
 TABLE_FILE = DATASET_FILE.parent / "README.md"
 
@@ -43,7 +44,10 @@ def write_table(cases):
 
 
 def main():
-    cases, records = load_cases(), load_records()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", default="golden", choices=DATASETS)
+    args = parser.parse_args()
+    cases, records = load_cases(args.dataset), load_records()
     print(f"{len(cases)} cases, checked against {len(records)} CVE records\n")
     print(f"{'group':14} {'cases':>5}  types")
     for group in GROUPS:
@@ -59,9 +63,9 @@ def main():
     longest = max(cases, key=lambda c: len(c["question"]))
     print(f"Longest question: {longest['id']}, {len(longest['question'])} characters")
 
-    found = problems(cases, records)
+    found = problems(cases, records, DATASETS[args.dataset]["groups"])
     print("\n" + ("\n".join(f"❌ {p}" for p in found) if found else "✅ No problems: ready to upload"))
-    if not found:
+    if not found and args.dataset == "golden":
         write_table(cases)
         print(f"Wrote {TABLE_FILE.relative_to(TABLE_FILE.parents[1])}")
     sys.exit(1 if found else 0)

@@ -17,6 +17,10 @@ DATASET_FILE = ROOT / "dataset" / "golden.toml"
 EXAMPLES_FILE = ROOT / "dataset" / "golden.jsonl"
 DATASET_NAME = "callguard-golden-40"
 GROUPS = {"happy-path": 20, "edge": 12, "known-failure": 6, "adversarial": 2}  # the mix the brief asks for
+# The golden dataset, and the held-out check written after the fixes (no required mix)
+DATASETS = {"golden": {"file": DATASET_FILE, "examples": EXAMPLES_FILE, "name": DATASET_NAME, "groups": GROUPS},
+            "holdout": {"file": ROOT / "dataset" / "holdout.toml", "examples": ROOT / "dataset" / "holdout.jsonl",
+                        "name": "callguard-holdout-5", "groups": None}}
 TYPES = {"exact-id", "version", "meaning", "multi-step", "freshness", "refuse", "list-all", "adversarial"}
 EXPECTS = {"answer", "refuse", "resist"}
 REASONS = {"unknown product", "unknown cve", "cloud", "out of scope", "internal data", "no records"}
@@ -25,8 +29,13 @@ CVE_ID = re.compile(r"CVE-\d{4}-\d{4,}")
 CISCO_CONTACT_CENTER = {"C4", "C6", "C7", "C8", "C9"}  # UCCX, UCCE/PCCE, Finesse, CVP, CUIC (as in CallGuard's exam)
 
 
-def load_cases():
-    return tomllib.loads(DATASET_FILE.read_text())["case"]
+def load_cases(which="golden"):
+    return tomllib.loads(DATASETS[which]["file"].read_text())["case"]
+
+
+def all_cases():
+    """Every case of every dataset, so results from either can be read back."""
+    return [c for which in DATASETS for c in load_cases(which)]
 
 
 def load_records():
@@ -65,13 +74,15 @@ def freshness_expectations(records):
             "F2": {"cves": [newest_cisco["id"]], "published": newest_cisco["published"]}}
 
 
-def problems(cases, records):
-    """Everything wrong with the dataset, as a list of sentences (empty when it is ready to upload)."""
+def problems(cases, records, groups=GROUPS):
+    """Everything wrong with the dataset, as a list of sentences (empty when it is ready to upload). groups: the
+    required mix, or None for a dataset without one (the held-out check)."""
     found = []
     ids = [c.get("id") for c in cases]
     found += [f"{i}: the ID is used more than once" for i in sorted({i for i in ids if ids.count(i) > 1})]
-    counts = {g: sum(c.get("group") == g for c in cases) for g in GROUPS}
-    found += [f"group {g}: {counts[g]} cases, the brief asks for {n}" for g, n in GROUPS.items() if counts[g] != n]
+    if groups:
+        counts = {g: sum(c.get("group") == g for c in cases) for g in groups}
+        found += [f"group {g}: {counts[g]} cases, the brief asks for {n}" for g, n in groups.items() if counts[g] != n]
     found += [f"{c.get('id')}: unknown group {c.get('group')!r}" for c in cases if c.get("group") not in GROUPS]
     products = load_products()
     for c in cases:

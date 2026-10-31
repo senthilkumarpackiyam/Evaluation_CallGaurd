@@ -16,7 +16,7 @@ import time
 
 from langsmith import Client
 
-from callguard_eval.dataset import DATASET_NAME
+from callguard_eval.dataset import DATASETS
 from callguard_eval.evaluators import CODE_EVALUATORS, JUDGE_MODEL, JUDGES, timing
 from callguard_eval.results import langsmith_differences, rows_from, save
 from callguard_eval.target import describe, make_target
@@ -26,6 +26,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", required=True, help="experiment prefix, e.g. baseline or after-fixes")
     parser.add_argument("--repetitions", type=int, default=3)
+    parser.add_argument("--dataset", default="golden", choices=DATASETS, help="golden (40 cases) or holdout (5)")
     parser.add_argument("--dataset-version", default="v1")
     parser.add_argument("--cases", help="only these case IDs, comma-separated (for a quick check)")
     args = parser.parse_args()
@@ -34,6 +35,7 @@ def main():
     if about["callguard"].endswith("+changes"):
         sys.exit(f"CallGuard has unsaved changes ({about['callguard']}): commit them first, so the result can be "
                  "traced back to a version")
+    DATASET_NAME = DATASETS[args.dataset]["name"]
     client = Client()
     examples = list(client.list_examples(dataset_name=DATASET_NAME, as_of=args.dataset_version))
     if args.cases:

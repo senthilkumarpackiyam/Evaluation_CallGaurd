@@ -39,8 +39,20 @@ def failed(outputs):
     return (outputs or {}).get("kind") == "error"
 
 
-def safe_wording(reason, text):
+NEGATION = re.compile(r"\b(?:no|not|never|cannot|without|unable)\b|n't", re.I)
+
+
+def denies(cve_ids, text):
+    """Does a sentence name one of these CVEs and say it isn't there? ("No CVE-2024-41731 appears in CallGuard's
+    records", "CallGuard has no record of CVE-2024-41731".) Phrase lists kept missing new wordings of this."""
+    sentences = re.split(r"(?<=[.!?])\s+|\n+", text.replace("’", "'"))
+    return any(NEGATION.search(s) and any(c.lower() in s.lower() for c in cve_ids) for s in sentences)
+
+
+def safe_wording(reason, text, asked=()):
     lower = text.lower().replace("’", "'")  # models often write curly apostrophes: don’t, can’t
+    if reason == "unknown cve" and asked and denies(asked, text):
+        return True
     return all(any(phrase in lower for phrase in group) for group in SAFE_WORDING[reason])
 
 
@@ -79,7 +91,7 @@ def citations_valid(inputs, outputs):
                  if invented else "")
 
 
-def refusal_correct(outputs, reference_outputs):
+def refusal_correct(inputs, outputs, reference_outputs):
     """Declines exactly when it should: a should-refuse case needs the safe wording for its reason, and a case with
     known answers must not be declined."""
     expect, body = reference_outputs["expect"], (outputs or {}).get("answer") or ""
@@ -87,7 +99,7 @@ def refusal_correct(outputs, reference_outputs):
         return results()
     if expect == "refuse":
         reason = reference_outputs["reason"]
-        ok = safe_wording(reason, body)
+        ok = safe_wording(reason, body, asked=CVE_ID.findall(inputs["question"]))
         return score("refusal_correct", int(ok), f"safe '{reason}' refusal" if ok else
                      f"declined without the safe wording for '{reason}'" if outputs["kind"] == "refusal" or
                      "no matching cve" in body.lower() else f"answered instead of declining ('{reason}')")

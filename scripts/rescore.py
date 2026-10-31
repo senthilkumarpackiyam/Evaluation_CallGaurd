@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from langsmith import Client
 
-from callguard_eval.dataset import load_cases, to_example
+from callguard_eval.dataset import all_cases, to_example
 from callguard_eval.evaluators import CODE_EVALUATORS, correctness, faithfulness
 from callguard_eval.results import langsmith_differences, load, repair_langsmith, replace_scores, save
 
@@ -60,7 +60,7 @@ def main():
     args = parser.parse_args()
     client = Client()
     rows = load(args.experiment)
-    examples = {c["id"]: to_example(c) for c in load_cases()}
+    examples = {c["id"]: to_example(c) for c in all_cases()}
     # All runs in one listing (reading them one by one, 8 at a time, hit LangSmith's rate limit)
     runs = {str(r.id): r for r in client.list_runs(project_name=args.experiment, is_root=True)}
     work = []  # (row, function giving its new scores)

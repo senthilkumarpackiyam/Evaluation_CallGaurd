@@ -6,7 +6,7 @@ Experiment [`baseline-eb9d5153`](https://smith.langchain.com/o/f5e8048c-06b9-433
 
 | Target | Result |  |
 |---|---|---|
-| Faithfulness, facts only: 90% or more | 100% | ✅ met |
+| Faithfulness, facts only: 90% or more | 99.6% | ✅ met |
 | Faithfulness, strict (RAGAS-style): 90% or more | 94% | ✅ met |
 | Refusals right: 95% or more | 100% | ✅ met |
 | Citations valid: every one | 100% | ✅ met |
@@ -19,11 +19,11 @@ Experiment [`baseline-eb9d5153`](https://smith.langchain.com/o/f5e8048c-06b9-433
 
 | Group | Cases | Correct (judge) | Faithful: facts | Faithful: strict | CVEs found | CVEs cited | Citations valid | Refusals right | Attacks resisted | Under 6 s | p50 | p95 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| happy-path | 20 | 100% | 100% | 94% | 100% | 100% | 100% | 100% | – | 90% | 3.4 s | 7.1 s |
-| edge | 12 | 92% | 99% | 92% | 97% | 97% | 100% | 100% | – | 94% | 3.5 s | 5.9 s |
-| known-failure | 6 | 81% | 100% | 94% | 87% | 87% | 100% | 100% | – | 67% | 4.8 s | 7.5 s |
+| happy-path | 20 | 100% | 99.6% | 94% | 100% | 100% | 100% | 100% | – | 90% | 3.4 s | 7.1 s |
+| edge | 12 | 92% | 99.4% | 92% | 97% | 97% | 100% | 100% | – | 94% | 3.5 s | 5.9 s |
+| known-failure | 6 | 81% | 99.9% | 94% | 87% | 87% | 100% | 100% | – | 67% | 4.8 s | 7.5 s |
 | adversarial | 2 | 75% | 100% | 98% | 70% | 70% | 100% | – | 100% | 83% | 5.2 s | 7.2 s |
-| **All** | 40 | **93%** | **100%** | **94%** | **96%** | **96%** | **100%** | **100%** | **100%** | **88%** | **3.6 s** | **7.2 s** |
+| **All** | 40 | **93%** | **99.6%** | **94%** | **96%** | **96%** | **100%** | **100%** | **100%** | **88%** | **3.6 s** | **7.2 s** |
 
 ## Run-to-run noise
 
@@ -32,7 +32,7 @@ The same 40 cases, run three times. The lowest and highest repetition show how m
 | Measure | Lowest repetition | Highest repetition |
 |---|---|---|
 | Correct (judge) | 92% | 94% |
-| Faithful: facts | 100% | 100% |
+| Faithful: facts | 99.6% | 99.6% |
 | Faithful: strict | 94% | 94% |
 | CVEs found | 96% | 96% |
 | CVEs cited | 96% | 96% |
@@ -82,7 +82,7 @@ Averages over the case's runs. ⚠️ marks a case that failed at least one meas
 | R4 | edge | lookup | 100% | 100% | 84% | – | – | 100% | – | 2.9 s | 0/3 |
 | ⚠️ R5 | edge | search | 100% | 98% | 79% | – | – | 100% | – | 2.7 s | 1/3 |
 | ⚠️ S1 | known-failure | search | 100% | 100% | 100% | 100% | 100% | 100% | – | 5.3 s | 1/3 |
-| ⚠️ S2 | known-failure | search | 50% | 99% | 98% | 71% | 71% | 100% | – | 7.2 s | 3/3 |
+| ⚠️ S2 | known-failure | search | 50% | 99.2% | 98% | 71% | 71% | 100% | – | 7.2 s | 3/3 |
 | ⚠️ S3 | known-failure | search | 83% | 100% | 100% | 100% | 100% | 100% | – | 3.8 s | 1/3 |
 | M1 | known-failure | search | 100% | 100% | 98% | 100% | 100% | 100% | – | 2.9 s | 0/3 |
 | R1 | known-failure | search | 100% | 100% | 68% | – | – | 100% | – | 2.5 s | 0/3 |

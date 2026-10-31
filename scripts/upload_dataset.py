@@ -15,8 +15,7 @@ from collections import Counter
 from langsmith import Client
 
 from callguard_eval import callguard_version
-from callguard_eval.dataset import (DATASET_NAME, EXAMPLES_FILE, GROUPS, load_cases, load_records, problems,
-                                    to_example)
+from callguard_eval.dataset import DATASETS, GROUPS, load_cases, load_records, problems, to_example
 
 from callguard.index import PROCESSED  # noqa: E402
 
@@ -33,10 +32,13 @@ def differs(existing, example):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tag", default="v1", help="the name for this version of the dataset in LangSmith")
+    parser.add_argument("--dataset", default="golden", choices=DATASETS)
     args = parser.parse_args()
+    which = DATASETS[args.dataset]
+    DATASET_NAME, EXAMPLES_FILE = which["name"], which["examples"]
 
-    cases, records = load_cases(), load_records()
-    found = problems(cases, records)
+    cases, records = load_cases(args.dataset), load_records()
+    found = problems(cases, records, which["groups"])
     if found:
         print("Not uploaded: run scripts/check_dataset.py and fix these first:\n" + "\n".join(f"  {p}" for p in found))
         sys.exit(1)
@@ -48,10 +50,11 @@ def main():
     if client.has_dataset(dataset_name=DATASET_NAME):
         dataset = client.read_dataset(dataset_name=DATASET_NAME)
     else:
-        counts = ", ".join(f"{n} {g}" for g, n in GROUPS.items())
+        counts = ", ".join(f"{n} {g}" for g in GROUPS if (n := sum(c["group"] == g for c in cases)))
         dataset = client.create_dataset(
             DATASET_NAME,
-            description=f"CallGuard's golden dataset: {len(examples)} cases ({counts}). Source: dataset/golden.toml "
+            description=f"CallGuard's {args.dataset} dataset: {len(examples)} cases ({counts}). Source: "
+                        f"dataset/{which['file'].name} "
                         f"in {REPOSITORY}. Expected answers come from CallGuard's data, frozen at "
                         f"{manifest['collected_at'][:16].replace('T', ' ')} UTC.",
             metadata={"repository": REPOSITORY, "callguard": callguard_version(), "data_as_of": manifest["collected_at"]})
@@ -72,7 +75,7 @@ def main():
 
     uploaded = list(client.list_examples(dataset_id=dataset.id))
     splits = Counter(s for e in uploaded for s in (e.metadata or {}).get("dataset_split", []))
-    print(f"In LangSmith: {len(uploaded)} examples; splits " + ", ".join(f"{g} {splits[g]}" for g in GROUPS))
+    print(f"In LangSmith: {len(uploaded)} examples; splits " + ", ".join(f"{g} {splits[g]}" for g in GROUPS if splits[g]))
     newest = max(client.list_dataset_versions(dataset_id=dataset.id), key=lambda v: v.as_of)
     if args.tag not in (newest.tags or []):
         client.update_dataset_tag(dataset_id=dataset.id, as_of=newest.as_of, tag=args.tag)

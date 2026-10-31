@@ -6,7 +6,7 @@
 | 1 | 40-case golden dataset | All 40 verified against the data and uploaded to LangSmith | **Done** 2026-10-31 (40/40 checked; `callguard-golden-40` tagged `v1`) |
 | 2 | Evaluators and the baseline run | Baseline experiment in LangSmith, results by group | **Done** 2026-10-31 (`baseline-eb9d5153`: 120 runs, 0 errors; [report](../reports/baseline-eb9d5153.md)) |
 | 3 | Failure clusters | Clusters written up; fixes approved | **Written** 2026-10-31 ([clusters](../reports/failure_clusters.md)); fixes awaiting approval |
-| 4 | Fixes and the re-run | After-fix experiment and the comparison | |
+| 4 | Fixes and the re-run | After-fix experiment and the comparison | **Done** 2026-10-31 (`after-fixes-f943ddf3`, [comparison](../reports/comparison.md), [held-out](../reports/holdout-comparison.md)) |
 | 5 | Spreadsheet, report, Loom script | Deliverables ready | |
 
 ## Decisions log (Phase 0)
@@ -68,6 +68,53 @@ CallGuard `v1.0-baseline`, 40 cases × 3 runs, judge Qwen3.5-397B. [Full report]
 | p50 / p95 response time | 3.6 s / 7.2 s (15 of 120 answers over 6 s) | p95 under 6 s ❌ |
 
 What is left, for Phase 3: the remaining "partly" verdicts all fall into four groups. (1) **List questions** capped at 8 records: L1 finds 8 of 13, S2 5 of 7. (2) **Noisy questions lose records**: "Asterix" (X1) misses CVE-2022-26651, and A2's junk finds 2 of 5 (it also read a "version 1.0" out of `<?xml version="1.0"?>`). (3) **Versions only in a description** make the answer hedge (V3, CVE-2025-52913). (4) **Slow answers**, mostly long lists (M5, S2, L1); the Week 3 exam's p95 was 4.6 s, measured the same way.
+
+## Decisions log (Phase 4)
+
+| Decision | Choice | Why |
+|---|---|---|
+| Fixes approved | F1–F4, all four ([clusters](../reports/failure_clusters.md)) | The brief asks for 3–4; together they cover every agent cluster |
+| Where | CallGuard's `evaluation` branch, one commit, tagged `v1.1`; `main` untouched | Every experiment records the version it ran |
+| F1 writer without reasoning | `chat_template_kwargs: {"thinking": false}` on both writer calls (normal and streaming) | The only switch that worked (`enable_thinking` and `reasoning_effort` didn't); L1 7.2 s → 3.8 s |
+| F2 list mode | Search questions that ask for a list, or that severity, exploitation or ransomware narrows within a product or vendor: every matching record up to 20, and the writer told the count | Only L1 changes on the golden dataset; the count note stops "only eight" |
+| F3 clean questions | NFKC, control and format characters, markup tags (`<` + letter, `/`, `!` or `?`, so "versions < 17.0.3" stays), runs of 4+ of one non-digit character, 1,000-character cap; misspelled product only when nothing matched exactly (similarity ≥ 0.8, same first letter, names of 6+ letters) and named to the writer | Narrow enough that real questions, version numbers and CVE numbers pass unchanged (tested) |
+| F4 description versions | Used only when the description has exactly one range phrase; 3 of the 7 description-only records qualify, the other 4 stay "unknown" | Several ranges in one sentence ("through 10.0.0.4, 10.1.0.0 through 10.1.0.5, …") are left to people rather than guessed |
+| A changed test | `CVE-2025-52913` at 9.8.2.0 was expected "unknown"; it is now "affected" | That is the behaviour F4 is meant to change |
+| Overfitting check | `dataset/holdout.toml`: 5 cases written after the fixes, one per fixed behaviour on another product (H1 MiVoice Connect list, H2 "MiColab", H3 HTML email, H4 CVE-2025-27827, H5 Unity Connection), uploaded as `callguard-holdout-5`; run on both `v1.0-baseline` and `v1.1` | A fix that only learned its golden case would show no gain here |
+| Comparison | `scripts/compare.py`: a change is "clear" only when the two experiments' repetition ranges don't overlap | The baseline showed correctness moving 92–94% on its own |
+
+## Results after the fixes (Phase 4)
+
+Golden dataset, 40 cases × 3, same judge, evaluators and dataset version; CallGuard `v1.0-baseline` → `v1.1`. [Full comparison](../reports/comparison.md).
+
+| Measure | Baseline | After fixes | |
+|---|---|---|---|
+| Correct (judge) | 93% (92–94%) | **98%** (98–99%) | ✅ clearly better |
+| Expected CVEs found / cited | 96% / 96% | **99.1% / 99%** | ✅ clearly better |
+| p50 / p95 response time | 3.6 s / 7.2 s | **2.0 s / 3.6 s** | ✅ clearly better; every answer under 6 s |
+| Refusals right · attacks resisted | 100% · 100% | 100% · 100% | |
+| Citations valid | 100% | 99.2% (one run) | within noise, but a real error |
+| Faithfulness, facts only / strict | 99.6% / 94% | 99.1% / 94% | facts: small, clearly worse |
+
+- **Fixed:** V2, S4, M5, V3, F1, X4, R5, S1, A2 (failed something before, nothing after); L1 and X1 went from 3/3 failing runs to 1/3. Adversarial group 75% → 100% correct.
+- **What got worse, honestly:**
+  - **One invented CVE number** in 120 runs: S2 run 1 wrote "CVE-2024-41793" for CVE-2024-41713, a digit slip. CallGuard's own citation check flagged it (`unsupported`), but the answer still contained it. Likely a cost of F1 (no reasoning to catch it).
+  - **Faithfulness, facts only, 99.6% → 99.1%:** single loose inferences in 7 cases ("you are on the fixed release", "unexploited so far", "clears both"), and one judge error: L1 run 1 scored 77% because the judge listed 17 CVSS scores the answer *left out* as unsupported claims. Not re-judged, to avoid choosing which scores to redo.
+  - **M4, one run "partly":** said CVE-2024-55550 chains with two flaws instead of one.
+- **Still failing:** S2 (5 of 7: ranking, not fixed by design) and one S3 judge nit.
+- **Evaluator correction, applied to both experiments:** the "unknown cve" refusal rule now accepts any sentence that names the asked CVE and denies it, instead of a phrase list (it had missed "No CVE-2024-41731 appears in CallGuard's data"). Baseline: no change; after: X3's two correct refusals counted. Tested both ways (a description of the neighbouring CVE still fails).
+
+Held-out check, 5 fresh cases × 3 on both versions. [Comparison](../reports/holdout-comparison.md).
+
+| Measure | v1.0-baseline | v1.1 | |
+|---|---|---|---|
+| Correct (judge) | 80% (70–90%) | **100%** | ✅ clearly better |
+| Expected CVEs found | 96% | **100%** | ✅ clearly better (H1 list: 80% → 100%) |
+| p95 response time | 4.1 s | 8.6 s | within noise, and not caused by the fixes (below) |
+
+- The fixes generalise: H1 (another product's list), H2 (another misspelling), H3 (an HTML email) and H4 (another description-only record) all answer correctly on v1.1.
+- **Latency on the held-out run is not a fair comparison:** v1.1 ran first, so its first repetition paid for the new questions' search embeddings (retrieve 0.75–5.9 s instead of 0.05 s); the baseline run reused them. One H3 answer also hit a Nebius slowdown (16.8 s to write 281 tokens). The writer itself took 1.4–2.7 s on v1.1 against 1.5–4.0 s on the baseline.
+- **A limitation this exposed:** the golden runs' response times were measured with the question embeddings already cached (the questions had been asked before), so a brand-new question in real use also pays 1–6 s for its embedding. The p95 of 3.6 s is for answering, not for a first-ever question.
 
 ## Found in Phase 0
 
