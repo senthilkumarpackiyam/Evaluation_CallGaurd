@@ -1,0 +1,46 @@
+[project]
+name = "callguard-eval"
+version = "0.1.0"
+description = "Evaluating CallGuard, a RAG assistant for contact-center vulnerabilities, with LangSmith"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "callguard",
+    "httpx>=0.28.1",
+    "langsmith>=0.14.11",
+    "openai>=3.33.0",
+    "openpyxl>=3.1.5",
+]
+
+# CallGuard sits next to this folder (../CallGaurd), on its evaluation branch. Editable, so a fix made there
+# is what the next run evaluates, and CallGuard keeps reading the keys from its own .env.
+[tool.uv.sources]
+callguard = { path = "../CallGaurd", editable = true }
+
+[tool.uv]
+# The libraries CallGuard's answers depend on, held at the versions in CallGuard's own uv.lock, so the agent
+# behaves here exactly as it did when it was built and graded
+constraint-dependencies = [
+    "fastembed==0.9.0",
+    "langchain-core==1.6.12",
+    "langgraph==1.2.16",
+    "langsmith==0.14.11",
+    "openai==3.33.0",
+    "qdrant-client==1.19.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/callguard_eval"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+# A notice from inside the langsmith library (it renamed one of its own modules); nothing to change here
+filterwarnings = ["ignore:langsmith.wrappers._openai_agents is deprecated:DeprecationWarning"]

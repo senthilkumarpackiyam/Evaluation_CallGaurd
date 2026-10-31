@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.pytest_cache/
+
+# Virtual environment (a shortcut to ~/.venvs/callguard-eval, outside iCloud)
+.venv
+
+# Secrets: the keys live only in CallGuard's .env (never commit a .env here either)
+.env
+
+# Mac and spreadsheet clutter
+.DS_Store
+~$*.xlsx
+*.tmp
