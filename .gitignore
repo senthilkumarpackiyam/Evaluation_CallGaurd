@@ -17,3 +17,6 @@ wheels/
 .DS_Store
 ~$*.xlsx
 *.tmp
+
+# The demo video's intermediate files (slide images, narration clips)
+video/build/

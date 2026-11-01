@@ -6,7 +6,7 @@
 2. `client.evaluate()` with **7 code evaluators and 2 LLM judges**, every case run 3 times
 3. a **baseline**, failures **clustered** by root cause, **5 fixes**, a **re-run**, and a **held-out check** written after the fixes
 
-**Track 3, GEN ACADEMY.** Full write-up: [reports/evaluation_report.md](reports/evaluation_report.md) (also as a Google Doc) · Spreadsheet: [reports/callguard_evaluation.xlsx](reports/callguard_evaluation.xlsx) · Video script: [docs/loom_script.md](docs/loom_script.md)
+**Track 3, GEN ACADEMY.** Full write-up: [reports/evaluation_report.md](reports/evaluation_report.md) (also as a Google Doc) · Spreadsheet: [reports/callguard_evaluation.xlsx](reports/callguard_evaluation.xlsx) · Video script: [docs/loom_script.md](docs/loom_script.md) · Narrated demo video: [video/callguard_demo.mp4](video/callguard_demo.mp4)
 
 ## Results
 
@@ -79,6 +79,7 @@ uv run scripts/compare.py <before> <after> --out comparison         # reports/co
 uv run scripts/rescore.py <experiment> --judge correctness          # re-score saved answers after an evaluator fix
 uv run scripts/build_spreadsheet.py               # reports/callguard_evaluation.xlsx
 uv run pytest                                     # 19 tests (CallGuard has 59 more)
+uv run video/build_video.py                       # the narrated demo video (macOS and Chrome; about 6 minutes)
 ```
 
 Each 120-run experiment stores about 1,200 LangSmith traces, counting the evaluators. On the free plan, that reached the monthly limit during this project. Passing `disable_evaluator_tracing=True` to `client.evaluate()` would cut it to about 120.
@@ -93,6 +94,7 @@ Each 120-run experiment stores about 1,200 LangSmith traces, counting the evalua
 | `results/` | Every run of every experiment with every score, as `client.evaluate()` returned them |
 | `reports/` | The [evaluation report](reports/evaluation_report.md), the [failure clusters](reports/failure_clusters.md), a report per experiment, the [final comparison](reports/comparison-final.md), the [held-out comparison](reports/holdout-comparison-final.md) and the spreadsheet |
 | `docs/` | [`PROGRESS.md`](docs/PROGRESS.md) (every decision, phase by phase) and the [Loom script](docs/loom_script.md) |
+| `video/` | The narrated demo video and its subtitles, built by [`build_video.py`](video/build_video.py) from the slides in [`slides.html`](video/slides.html) |
 | `tests/` | Tests for the dataset checker, the code evaluators and the summaries |
 
 ## Limitations

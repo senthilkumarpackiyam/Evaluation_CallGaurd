@@ -152,6 +152,15 @@ Golden dataset, 40 cases × 3. [Baseline vs v1.2](../reports/comparison-final.md
 | Lookup keys | Per-case formulas match a text key (`<experiment>|<case>`), not the bare case ID | As a criterion, "M1"…"M5" were read as the same number by the formula engine, which mixed M1–M4 with M5 (caught by the check, fixed) |
 | Loom script | [`docs/loom_script.md`](loom_script.md): 5 timed sections with what to show and say, and exact LangSmith links | It shows only experiments that are already stored, because the trace limit stops new ones |
 
+## Demo video (after Phase 5, 2026-11-01)
+
+| Decision | Choice | Why |
+|---|---|---|
+| Format | [`video/callguard_demo.mp4`](../video/callguard_demo.mp4): 19 narrated slides at 1080p, with subtitles in `callguard_demo.srt` alongside, to upload with the video | You asked for a detailed .mp4 demo with a male voice |
+| Slides | [`video/slides.html`](../video/slides.html), screenshotted step by step in headless Chrome; every number comes from the reports and the saved results | LangSmith pages need a sign-in and couldn't be screen-recorded here, so the slides show the same data |
+| Voice | macOS `say`, voice Daniel (male, British English), on this Mac | No text-to-speech service, so nothing is uploaded; `--voice` switches to another installed voice |
+| Pronunciation | A small lexicon in [`build_video.py`](../video/build_video.py) changes only the spoken text ("MiCollab" as "My Collab", "CVE" as letters, "p95"); the subtitles keep the written form | Default speech misreads product names and abbreviations |
+
 ## Found in Phase 0
 
 - **The index is complete:** 895 entries, each identical to its record. `index_info.json` says 889 because it's written only on a full rebuild; the syncs since then added 6.

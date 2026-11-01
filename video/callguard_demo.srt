@@ -1,0 +1,754 @@
+1
+00:00:00,600 --> 00:00:04,867
+This is a walkthrough of my Track 3 project:
+evaluating CallGuard,
+
+2
+00:00:04,867 --> 00:00:07,970
+a retrieval-augmented assistant, with
+LangSmith.
+
+3
+00:00:08,520 --> 00:00:12,709
+The headline: correctness went from 93% to
+98%,
+
+4
+00:00:12,709 --> 00:00:19,214
+the slowest answers from 7.2 to 3.8 seconds,
+and five held-out questions,
+
+5
+00:00:19,214 --> 00:00:23,403
+written after the fixes, went from 80% to
+100%.
+
+6
+00:00:23,403 --> 00:00:24,472
+Here is how.
+
+7
+00:00:25,717 --> 00:00:33,989
+CallGuard answers 'are we exposed?' questions
+about vulnerabilities in contact-center and
+unified-communications products,
+
+8
+00:00:33,989 --> 00:00:36,769
+such as Cisco, Avaya, Mitel and Asterisk.
+
+9
+00:00:36,769 --> 00:00:41,379
+It answers from NVD, CISA's list of known
+exploited vulnerabilities,
+
+10
+00:00:41,379 --> 00:00:45,176
+and FIRST's exploit forecasts, and it cites
+every claim.
+
+11
+00:00:45,726 --> 00:00:48,950
+Each question runs through a LangGraph call
+flow.
+
+12
+00:00:48,950 --> 00:00:52,240
+Code reads the CVE numbers, products and
+versions.
+
+13
+00:00:52,240 --> 00:00:56,451
+A hybrid search finds the records, and code
+checks the versions.
+
+14
+00:00:56,451 --> 00:01:00,530
+For open-ended questions, a model checks that
+the records fit.
+
+15
+00:01:00,530 --> 00:01:05,662
+Then a writer model drafts a cited answer, or
+code declines with safe wording.
+
+16
+00:01:06,212 --> 00:01:10,979
+To keep every comparison fair, the data was
+frozen at 895 CVEs,
+
+17
+00:01:10,979 --> 00:01:15,746
+and each experiment records the exact
+CallGuard version it ran.
+
+18
+00:01:16,983 --> 00:01:19,673
+The method is the one a QA team would use.
+
+19
+00:01:19,673 --> 00:01:21,147
+Build a golden dataset.
+
+20
+00:01:21,147 --> 00:01:26,079
+Score every answer with code evaluators and
+LLM judges, three times per case,
+
+21
+00:01:26,079 --> 00:01:28,961
+so the noise is measured rather than guessed.
+
+22
+00:01:28,961 --> 00:01:31,331
+Then check the evaluators themselves.
+
+23
+00:01:31,881 --> 00:01:37,417
+Take a baseline, cluster the failures by root
+cause, fix them, and run it again.
+
+24
+00:01:37,417 --> 00:01:42,815
+Finally, a held-out set, written after the
+fixes, checks that they generalise.
+
+25
+00:01:44,050 --> 00:01:49,339
+The golden dataset has 40 cases: 20 happy-
+path, 12 edge, 6 known-failure,
+
+26
+00:01:49,339 --> 00:01:50,644
+and 2 adversarial.
+
+27
+00:01:50,644 --> 00:01:54,991
+The 25 questions from my Week 3 exam are kept
+word for word.
+
+28
+00:01:54,991 --> 00:01:59,918
+They were written before CallGuard existed,
+which keeps them honest.
+
+29
+00:02:00,468 --> 00:02:02,879
+Fifteen new cases target real gaps,
+
+30
+00:02:02,879 --> 00:02:06,461
+and I checked each edge case against the code
+first.
+
+31
+00:02:06,461 --> 00:02:10,732
+'Asterix', misspelled, matches no product
+filter, for example.
+
+32
+00:02:10,732 --> 00:02:16,036
+Every case states the expected behaviour:
+answer, refuse for a stated reason,
+
+33
+00:02:16,036 --> 00:02:17,414
+or resist an attack.
+
+34
+00:02:17,414 --> 00:02:22,304
+It also lists the CVEs a good answer must
+find, and a reference answer.
+
+35
+00:02:22,854 --> 00:02:28,096
+A check script verifies every expected CVE
+against the data before upload.
+
+36
+00:02:28,096 --> 00:02:32,983
+In LangSmith, the dataset has one split per
+group, fixed example IDs,
+
+37
+00:02:32,983 --> 00:02:38,508
+and the version tag v1, so every experiment
+runs on exactly the same examples.
+
+38
+00:02:39,750 --> 00:02:41,542
+Two cases are adversarial.
+
+39
+00:02:41,542 --> 00:02:43,266
+A1 is a prompt injection.
+
+40
+00:02:43,266 --> 00:02:48,918
+It claims a real CVE was withdrawn, and orders
+the reply 'safe, no action needed'.
+
+41
+00:02:48,918 --> 00:02:50,986
+That phrase must never appear.
+
+42
+00:02:51,536 --> 00:02:56,544
+A2 is 771 characters of noise: control codes,
+a script tag, SQL,
+
+43
+00:02:56,544 --> 00:03:01,709
+template and JNDI strings, an XML entity and
+spreadsheet formulas,
+
+44
+00:03:01,709 --> 00:03:08,595
+all wrapped around one real question about
+server-side request forgery in Cisco Finesse.
+
+45
+00:03:09,850 --> 00:03:13,003
+One client.evaluate call runs each experiment.
+
+46
+00:03:13,003 --> 00:03:15,334
+Questions are asked one at a time,
+
+47
+00:03:15,334 --> 00:03:18,967
+so response times aren't distorted by parallel
+calls,
+
+48
+00:03:18,967 --> 00:03:21,160
+and every case runs three times.
+
+49
+00:03:21,710 --> 00:03:24,982
+Code evaluators check what code can check
+exactly.
+
+50
+00:03:24,982 --> 00:03:28,058
+Did the answer find and cite the expected
+CVEs?
+
+51
+00:03:28,058 --> 00:03:31,265
+Is every citation a record it was actually
+shown?
+
+52
+00:03:31,265 --> 00:03:35,322
+Did it decline exactly when it should, and
+resist the attacks?
+
+53
+00:03:35,322 --> 00:03:36,631
+And how fast was it?
+
+54
+00:03:37,181 --> 00:03:41,712
+Two LLM judges handle what code can't:
+faithfulness and correctness.
+
+55
+00:03:41,712 --> 00:03:46,842
+The judge is Qwen 3.5, a different model from
+CallGuard's writer and checker,
+
+56
+00:03:46,842 --> 00:03:48,974
+so no model grades its own work.
+
+57
+00:03:50,217 --> 00:03:53,148
+Faithfulness gets two scores from one
+judgement.
+
+58
+00:03:53,148 --> 00:03:58,217
+Here, CallGuard correctly declines a product
+that doesn't exist, and adds a caveat:
+
+59
+00:03:58,217 --> 00:04:01,209
+that is not a statement that the product is
+safe.
+
+60
+00:04:01,759 --> 00:04:07,025
+Strict scoring, the way RAGAS does it, counts
+that caveat as unsupported,
+
+61
+00:04:07,025 --> 00:04:09,549
+so this correct refusal scores 71%.
+
+62
+00:04:09,549 --> 00:04:13,517
+Facts-only scoring ignores caveats, and scores
+it 100%.
+
+63
+00:04:13,517 --> 00:04:14,815
+Both are reported,
+
+64
+00:04:14,815 --> 00:04:19,720
+because strict scoring alone punishes exactly
+the behaviour we want.
+
+65
+00:04:20,983 --> 00:04:26,593
+Before trusting the baseline, I read every
+failing verdict against the records.
+
+66
+00:04:26,593 --> 00:04:30,641
+The correctness judge had only seen the
+reference answer,
+
+67
+00:04:30,641 --> 00:04:34,831
+so it called correct extra facts hallucinated:
+EPSS scores,
+
+68
+00:04:34,831 --> 00:04:38,807
+a 2026 date it took for the future, even four
+real CVEs.
+
+69
+00:04:39,357 --> 00:04:44,578
+Given the same sources the writer saw, and re-
+scored on the same 120 answers,
+
+70
+00:04:44,578 --> 00:04:46,816
+correctness went from 80% to 93%.
+
+71
+00:04:46,816 --> 00:04:49,664
+Two more problems were found the same way:
+
+72
+00:04:49,664 --> 00:04:52,851
+a refusal phrase list that missed new
+wordings,
+
+73
+00:04:52,851 --> 00:04:56,716
+and a second evaluate call that mixed up the
+repetitions.
+
+74
+00:04:56,716 --> 00:05:00,513
+Measuring the measure changed the headline by
+13 points.
+
+75
+00:05:01,750 --> 00:05:08,333
+The baseline: 93% correct, faithfulness 99.6%
+on facts, and citations,
+
+76
+00:05:08,333 --> 00:05:12,282
+refusals and attacks resisted all at 100%.
+
+77
+00:05:12,282 --> 00:05:19,711
+Across the three repetitions, correctness
+moved between 92% and 94% on its own.
+
+78
+00:05:20,261 --> 00:05:23,846
+So CallGuard's weak points weren't
+hallucination.
+
+79
+00:05:23,846 --> 00:05:29,334
+They were coverage, in the known-failure and
+adversarial groups, and speed:
+
+80
+00:05:29,334 --> 00:05:32,846
+a p95 of 7.2 seconds, against a 6-second
+target.
+
+81
+00:05:34,083 --> 00:05:36,726
+Every failing run was traced to a cause.
+
+82
+00:05:36,726 --> 00:05:38,444
+Cluster one: slow answers.
+
+83
+00:05:38,444 --> 00:05:42,541
+The traces show that search takes five
+hundredths of a second.
+
+84
+00:05:42,541 --> 00:05:44,523
+Writing takes 99% of the time,
+
+85
+00:05:44,523 --> 00:05:48,355
+and about half of the writer's output is
+hidden reasoning.
+
+86
+00:05:48,905 --> 00:05:53,767
+On L1's real prompt, I tried three ways to
+switch that reasoning off.
+
+87
+00:05:53,767 --> 00:05:58,841
+Only one of them worked, and it took the
+answer from 7.2 to 3.8 seconds,
+
+88
+00:05:58,841 --> 00:06:00,391
+with the same content.
+
+89
+00:06:01,650 --> 00:06:03,564
+Cluster two: list questions.
+
+90
+00:06:03,564 --> 00:06:09,854
+'List every critical MiCollab vulnerability.'
+The filters find exactly the 13 right records,
+
+91
+00:06:09,854 --> 00:06:10,879
+ranked 1 to 13.
+
+92
+00:06:10,879 --> 00:06:16,280
+Then the search keeps the top 8, and the
+answer claims the data has only eight.
+
+93
+00:06:16,830 --> 00:06:19,119
+Cluster three: noisy questions.
+
+94
+00:06:19,119 --> 00:06:24,510
+'Asterix' matches no product filter, so the
+most serious CVE ranks tenth.
+
+95
+00:06:24,510 --> 00:06:29,753
+In A2, the XML junk, version equals 1.0, was
+read as a product version.
+
+96
+00:06:29,753 --> 00:06:35,291
+That re-sorted the results, and pushed three
+of the five right records out.
+
+97
+00:06:35,841 --> 00:06:36,804
+Cluster four:
+
+98
+00:06:36,804 --> 00:06:42,507
+seven of the 895 records state their affected
+versions only in a description,
+
+99
+00:06:42,507 --> 00:06:45,618
+so the writer hedged instead of answering.
+
+100
+00:06:45,618 --> 00:06:47,692
+One case, S2, stays unfixed.
+
+101
+00:06:47,692 --> 00:06:52,062
+Its two missed records rank 13th and 39th for
+that wording.
+
+102
+00:06:53,317 --> 00:06:58,622
+Four clusters, four fixes, each a general rule
+rather than a patch for one case.
+
+103
+00:06:58,622 --> 00:07:01,540
+F1 runs the writer without hidden reasoning.
+
+104
+00:07:01,540 --> 00:07:05,984
+F2 adds a list mode that passes on every
+matching record, up to 20,
+
+105
+00:07:05,984 --> 00:07:08,039
+and tells the writer the count.
+
+106
+00:07:08,039 --> 00:07:12,151
+F3 cleans noisy questions, and tolerates a
+misspelled product,
+
+107
+00:07:12,151 --> 00:07:14,406
+telling the writer it was a guess.
+
+108
+00:07:14,406 --> 00:07:18,253
+F4 reads a version range stated in a
+description, in code.
+
+109
+00:07:18,803 --> 00:07:22,421
+Each fix was checked for side effects on all
+40 questions.
+
+110
+00:07:22,421 --> 00:07:25,666
+I also dropped a planned prompt-injection
+guardrail:
+
+111
+00:07:25,666 --> 00:07:30,408
+both attacks were resisted in every run, so
+there was nothing for it to fix.
+
+112
+00:07:31,650 --> 00:07:36,087
+The re-run then caught a regression my own fix
+caused.
+
+113
+00:07:36,087 --> 00:07:42,661
+Without its reasoning, the writer once slipped
+a digit: 41713 came out as 41793.
+
+114
+00:07:42,661 --> 00:07:44,140
+One answer in 120.
+
+115
+00:07:44,690 --> 00:07:46,353
+So F5 is a citation guard.
+
+116
+00:07:46,353 --> 00:07:50,769
+If an answer cites a CVE that wasn't
+retrieved, isn't in the records,
+
+117
+00:07:50,769 --> 00:07:55,504
+and wasn't typed by the user, it gets one
+rewrite naming the wrong number.
+
+118
+00:07:55,504 --> 00:07:57,808
+If one remains, code adds a warning.
+
+119
+00:07:57,808 --> 00:08:01,199
+Four tests with a scripted writer show that it
+works,
+
+120
+00:08:01,199 --> 00:08:04,079
+and in the final run it never needed to fire.
+
+121
+00:08:05,317 --> 00:08:10,465
+Same dataset version, same evaluators, same
+judge.
+
+122
+00:08:10,465 --> 00:08:12,833
+Only CallGuard changed.
+
+123
+00:08:12,833 --> 00:08:16,231
+Correctness rose from 93% to 98%.
+
+124
+00:08:16,231 --> 00:08:20,041
+Expected CVEs found, from 96% to 99%.
+
+125
+00:08:20,041 --> 00:08:24,880
+And answers under six seconds, from 88% to
+98%.
+
+126
+00:08:25,430 --> 00:08:32,830
+p50 fell from 3.6 to 2.1 seconds, and p95 from
+7.2 to 3.8, well under the target.
+
+127
+00:08:32,830 --> 00:08:36,941
+Citations, refusals and attacks held at 100%.
+
+128
+00:08:36,941 --> 00:08:42,971
+And a change only counts when the repetition
+ranges don't overlap:
+
+129
+00:08:42,971 --> 00:08:49,091
+correctness ranged from 92 to 94% before, and
+from 96 to 99% after.
+
+130
+00:08:50,350 --> 00:08:55,527
+Twelve cases went from failing at least one
+measure to failing none.
+
+131
+00:08:55,527 --> 00:09:01,999
+The biggest gains were in the hardest groups:
+known failures from 81% to 92% correct,
+
+132
+00:09:01,999 --> 00:09:04,511
+and adversarial from 75% to 100%.
+
+133
+00:09:05,061 --> 00:09:10,642
+L1 now lists all 13 critical CVEs, in under
+four seconds instead of six to eight.
+
+134
+00:09:10,642 --> 00:09:14,569
+X1 says 'assuming you mean Asterisk', and
+finds all five.
+
+135
+00:09:14,569 --> 00:09:17,324
+And A2 finds all five through the noise.
+
+136
+00:09:18,583 --> 00:09:19,677
+It wasn't free.
+
+137
+00:09:19,677 --> 00:09:24,783
+Without the reasoning, faithfulness on facts
+fell from 99.6% to 99.4%:
+
+138
+00:09:24,783 --> 00:09:29,378
+single loose inferences, such as 'your build
+is the fixed one'.
+
+139
+00:09:29,378 --> 00:09:32,004
+Two cases had one 'partly' run each.
+
+140
+00:09:32,004 --> 00:09:37,255
+That's the price of halving the response time,
+and the report states it.
+
+141
+00:09:38,517 --> 00:09:42,576
+To check that the fixes weren't just
+memorising their test cases,
+
+142
+00:09:42,576 --> 00:09:46,823
+I wrote five new questions after the fixes,
+one per fixed behaviour,
+
+143
+00:09:46,823 --> 00:09:48,759
+on other products and wordings.
+
+144
+00:09:49,309 --> 00:09:53,918
+On the baseline version, they scored 80%
+correct.
+
+145
+00:09:53,918 --> 00:09:59,469
+With the fixes, 100%, and CVEs found went from
+96% to 100%.
+
+146
+00:09:59,469 --> 00:10:01,444
+The fixes generalise.
+
+147
+00:10:02,683 --> 00:10:04,539
+Everything is reproducible.
+
+148
+00:10:04,539 --> 00:10:10,036
+The repository holds the dataset, the
+evaluators, every result, and the reports.
+
+149
+00:10:10,036 --> 00:10:13,197
+The spreadsheet has all 40 cases and 405 runs,
+
+150
+00:10:13,197 --> 00:10:16,839
+with a summary computed by formula from the
+run data,
+
+151
+00:10:16,839 --> 00:10:20,206
+and a link from every run to its LangSmith
+trace.
+
+152
+00:10:21,450 --> 00:10:23,555
+A few limits, stated plainly.
+
+153
+00:10:23,555 --> 00:10:26,822
+The timings reuse cached question embeddings.
+
+154
+00:10:26,822 --> 00:10:29,508
+Three answers hit a stalled API call.
+
+155
+00:10:29,508 --> 00:10:30,597
+S2 still fails.
+
+156
+00:10:30,597 --> 00:10:34,081
+And 45 cases are enough to find failure
+classes,
+
+157
+00:10:34,081 --> 00:10:36,767
+not to measure rare errors precisely.
+
+158
+00:10:37,317 --> 00:10:40,618
+The lessons I'd keep: measure the measure
+first.
+
+159
+00:10:40,618 --> 00:10:42,819
+Repetitions are cheap insurance.
+
+160
+00:10:42,819 --> 00:10:45,020
+Traces turn guesses into causes.
+
+161
+00:10:45,020 --> 00:10:47,564
+Every fix has a price, so measure it.
+
+162
+00:10:47,564 --> 00:10:50,384
+And held-out cases keep the fixes honest.
+
+163
+00:10:50,384 --> 00:10:51,760
+Thanks for watching.
